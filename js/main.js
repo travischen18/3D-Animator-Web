@@ -2,14 +2,29 @@ var currFrame = 0;
 
 var cubeMesh;
 
+var keyFrames = [];
+
 function updateFrame(frame) {
     currFrame = frame;
     outputUpdate(currFrame);
 }
 
+
 function outputUpdate(frame) {
     document.querySelector('#currFrame').value = frame;
 }
+
+
+$(document).ready(function(){
+    $("#keyFrameButton").click(function(){
+        //console.log("x " + cubeMesh.position.x);
+        //console.log("y " + cubeMesh.position.y);
+
+        keyFrames[currFrame] = new THREE.Vector3(0, 0, 0);
+        keyFrames[currFrame].copy(cubeMesh.position);
+        console.log("keyframe set to " + keyFrames[currFrame].x);
+    });
+});
 
 //COLORS
 var Colors = {
@@ -31,21 +46,12 @@ var scene,
 
 var HEIGHT, WIDTH,
     mousePos = { x: 0, y: 0 };
-   
-/*    
-var positionsArray;
-
-positionsArray[0] = new THREE.Vector3(0, 0, 0);
-
-positionsArray[5] = new THREE.Vector3(6, 0, 0);
-
-positionsArray[10] = new THREE.Vector3(6, 8, 0); */
 
 //INIT THREE JS, SCREEN AND MOUSE EVENTS
 
 function createScene() {
 
-    container = document.getElementById('world');
+container = document.getElementById('world');
     
 HEIGHT = window.innerHeight * .6;
 WIDTH = window.innerWidth;
@@ -139,9 +145,9 @@ function onMouseMove( event ) {
     raycaster.setFromCamera( mouse, camera );
     // If the mouse is moving while there is an object selected
     intersects = raycaster.intersectObject( plane );
-    console.log(53);
+
     if (intersects.length > 0) {
-      console.log(5);
+
       selectedObject.position.copy(intersects[ 0 ].point);
     }
   /*} else {
@@ -208,19 +214,23 @@ window.requestAnimationFrame(render);
 function render(){
     requestAnimationFrame(render);
 
-    cubeMesh.position.x = currFrame;
+    if (keyFrames != undefined && keyFrames[currFrame] != undefined && keyFrames[currFrame] != null) {
+      console.log("keyed position is " + keyFrames[currFrame].x + " current is " + cubeMesh.position.x);
+      cubeMesh.position.copy(keyFrames[currFrame]);
+    }
+
     cubeMesh.material.color.set(Colors.red);
     
     // update the picking ray with the camera and mouse position	
-	raycaster.setFromCamera( mouse, camera );	
+    raycaster.setFromCamera( mouse, camera );	
 
-	// calculate objects intersecting the picking ray
-	intersects = raycaster.intersectObject(cubeMesh);
-    
-	for ( var i = 0; i < intersects.length; i++ ) {
-		intersects[ i ].object.material.color.set( 0xff0000 );
-	}
-    
+    // calculate objects intersecting the picking ray
+    intersects = raycaster.intersectObject(cubeMesh);
+      
+    for ( var i = 0; i < intersects.length; i++ ) {
+    	intersects[ i ].object.material.color.set( 0xff0000 );
+    }
+      
     renderer.render(scene, camera);
 
   
@@ -238,7 +248,6 @@ function init(){
 
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
-var offset = new THREE.Vector3(0, 0, 0);
 var intersection = new THREE.Vector3(0, 0, 0);
 var plane;
 var selectedObject;
