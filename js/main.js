@@ -121,10 +121,7 @@ function createCube() {
 
 }
 
-
-var raycaster = new THREE.Raycaster();
-var mouse = new THREE.Vector2();
-
+// When the mouse moves
 function onMouseMove( event ) {
 
 	// calculate mouse position in normalized device coordinates
@@ -135,11 +132,76 @@ function onMouseMove( event ) {
 	// HACKY!!!
 	mouse.y = (- ( event.clientY / HEIGHT ) * 2 + 1) + 1;	
 	
-	console.log(mouse.y);	
+	//console.log(mouse.y);	
+
+  
+  if (selectedObject) {
+    raycaster.setFromCamera( mouse, camera );
+    // If the mouse is moving while there is an object selected
+    intersects = raycaster.intersectObject( plane );
+    console.log(53);
+    if (intersects.length > 0) {
+      console.log(5);
+      selectedObject.position.copy(intersects[ 0 ].point);
+    }
+  /*} else {
+    // If the mouse is moving while there is no object intersected
+    intersects = raycaster.intersectObject(cubeMesh);
+    if ( intersects.length > 0 ) {
+      plane.position.copy(intersects[0].object.position );
+      plane.lookAt( camera.position );
+    }
+  } */
+
+ }
+}
+// When the mouse clicks down
+
+// AFTER:
+// selectedObject is the cube if selected, null if nothing
+// offset is the difference between the intersection of the ray and plane minus the current plane position
+function onMouseDown( event ) {
+
+  //event.preventDefault();
+
+  //console.log("hi");
+
+  // Intersects is the array of intersections with cubeMesh
+  intersects = raycaster.intersectObject(cubeMesh);
+
+  // If the mouse has clicked down on the cubeMesh
+  if ( intersects.length > 0 ) {
+
+    //controls.enabled = false;
+
+    // Save the selected object (cubeMesh)
+    selectedObject = intersects[ 0 ].object;
+
+    /*
+    // If the ray intersects with the plane
+    // store the resulting intersection point (if not null) in intersection
+    // (ie. the intersection point is not null)
+    if ( raycaster.ray.intersectPlane( plane, intersection ) ) {
+      // Here is where offset is initialized
+      // It gets the value of the intersection point, subtracted by the current position of the plane
+      offset.copy(intersects[0].point).sub(plane.position);
+    } */
+
+  }
 
 }
 
+function onMouseUp( event ) {
+
+  //event.preventDefault();
+
+  selectedObject = null;
+
+}
 window.addEventListener( 'mousemove', onMouseMove, false );
+window.addEventListener( 'mousedown', onMouseDown, false );
+window.addEventListener( 'mouseup', onMouseUp, false );
+
 
 window.requestAnimationFrame(render);
 
@@ -153,7 +215,7 @@ function render(){
 	raycaster.setFromCamera( mouse, camera );	
 
 	// calculate objects intersecting the picking ray
-	var intersects = raycaster.intersectObject(cubeMesh);
+	intersects = raycaster.intersectObject(cubeMesh);
     
 	for ( var i = 0; i < intersects.length; i++ ) {
 		intersects[ i ].object.material.color.set( 0xff0000 );
@@ -164,21 +226,34 @@ function render(){
   
 }
 
-function normalize(v,vmin,vmax,tmin, tmax){
-  var nv = Math.max(Math.min(v,vmax), vmin);
-  var dv = vmax-vmin;
-  var pc = (nv-vmin)/dv;
-  var dt = tmax-tmin;
-  var tv = tmin + (pc*dt);
-  return tv;
-}
-
 function init(){
   createScene();
   createLights();
   createCube();
+  setUpDrag();
   
   render();
+}
+
+
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
+var offset = new THREE.Vector3(0, 0, 0);
+var intersection = new THREE.Vector3(0, 0, 0);
+var plane;
+var selectedObject;
+var INTERSECTED, SELECTED;
+var intersects;
+
+function setUpDrag() {
+  var planeMat = new THREE.MeshBasicMaterial({visible:false});
+
+  plane = new THREE.Mesh( new THREE.PlaneGeometry( 2000,
+  2000, 18, 18 ), planeMat);
+
+  //plane.visible = false;
+  plane.lookAt(camera.position);
+  scene.add( plane ); 
 }
 
 
