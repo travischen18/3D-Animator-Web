@@ -55,7 +55,15 @@ body {
 	height: 100%;
 }
 
-#keyFrameButton {
+
+.buttons {
+	width: 100%;
+	margin: 2em 0 0;
+	text-align: center;
+	white-space: nowrap
+}
+
+.button {
     font-family: 'Futura';  
     background-color: #ff0000;
     border: none;
@@ -67,14 +75,11 @@ body {
     font-size: 18px;
 }
 
-#keyFrameButton:hover {
+.button:hover {
     background-color: #4CAF50;
     color: white;
 }
 
-.buttons {
-	width: 100%;
-	margin: 2em 0 0;
-	text-align: center;
-	white-space: nowrap
+.button:active {
+	background-color: #ff9999;
 }

@@ -1,30 +1,19 @@
-var currFrame = 0;
+var currFrame = 1;
 
 var cubeMesh;
 
 var keyFrames = [];
 
-function updateFrame(frame) {
-    currFrame = frame;
-    outputUpdate(currFrame);
-}
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
 
+// Intersection point
+var intersection = new THREE.Vector3(0, 0, 0);
+var plane;
+var selectedObject;
 
-function outputUpdate(frame) {
-    document.querySelector('#currFrame').value = frame;
-}
-
-
-$(document).ready(function(){
-    $("#keyFrameButton").click(function(){
-        //console.log("x " + cubeMesh.position.x);
-        //console.log("y " + cubeMesh.position.y);
-
-        keyFrames[currFrame] = new THREE.Vector3(0, 0, 0);
-        keyFrames[currFrame].copy(cubeMesh.position);
-        console.log("keyframe set to " + keyFrames[currFrame].x);
-    });
-});
+// Array of intersected objects
+var intersects;
 
 //COLORS
 var Colors = {
@@ -44,42 +33,102 @@ var scene,
 
 //SCREEN & MOUSE VARIABLES
 
-var HEIGHT, WIDTH,
-    mousePos = { x: 0, y: 0 };
+var HEIGHT, WIDTH;
+
+
+function updateFrame(frame) {
+    currFrame = frame;
+    outputUpdate(currFrame);
+}
+
+function outputUpdate(frame) {
+    document.querySelector('#currFrame').value = frame;
+}
+
+
+// Set a keyframe
+$(document).ready(function(){
+    $("#keyFrameButton").click(function(){
+
+        keyFrames[currFrame] = new THREE.Vector3(0, 0, 0);
+        keyFrames[currFrame].copy(cubeMesh.position);
+
+        interpolateKeys();
+
+    });
+
+});
+
+function interpolateKeys() {
+  var prevKey = null;
+  var nextKey = null;
+  for (var i = 0; i < keyFrames.length; i++) {
+    if (keyFrames[i] != undefined) {
+
+      if (prevKey == null) {
+        prevKey = i;
+      } else {
+
+        // Get the difference vector between the two locations
+        var vecDiff = new THREE.Vector3();
+        vecDiff.copy(keyFrames[i]);
+        vecDiff.sub(keyFrames[prevKey]);
+
+        // Get the frame difference
+        var frameDiff = i - prevKey;
+
+        // The add vector is vector / numFrames
+        var addVec = vecDiff.divideScalar(frameDiff);
+
+        for (var j = prevKey + 1; j < i; j++) {
+          var newVec = new THREE.Vector3();
+          newVec.copy(addVec);
+          newVec.multiplyScalar(j-prevKey);
+          keyFrames[j] = newVec;
+        }
+
+        prevKey = i;
+
+      }
+    }
+
+  }
+}
+
 
 //INIT THREE JS, SCREEN AND MOUSE EVENTS
 
 function createScene() {
 
-container = document.getElementById('world');
-    
-HEIGHT = window.innerHeight * .6;
-WIDTH = window.innerWidth;
+  container = document.getElementById('world');
+      
+  HEIGHT = window.innerHeight * .6;
+  WIDTH = window.innerWidth;
 
-scene = new THREE.Scene();
-aspectRatio = WIDTH / HEIGHT;
-fieldOfView = 60;
-nearPlane = 1;
-farPlane = 10000;
-camera = new THREE.PerspectiveCamera(
-fieldOfView,
-aspectRatio,
-nearPlane,
-farPlane
-);
-camera.position.x = 0;
-camera.position.z = 50;
-camera.position.y = 25;
+  scene = new THREE.Scene();
+  aspectRatio = WIDTH / HEIGHT;
+  fieldOfView = 60;
+  nearPlane = 1;
+  farPlane = 10000;
+  camera = new THREE.PerspectiveCamera(
+  fieldOfView,
+  aspectRatio,
+  nearPlane,
+  farPlane
+  );
+  camera.position.x = 0;
+  camera.position.z = 50;
+  camera.position.y = 25;
 
-camera.lookAt(new THREE.Vector3(0, 0, 0));
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-renderer.setSize(WIDTH, HEIGHT);
-renderer.shadowMap.enabled = true;
+  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(WIDTH, HEIGHT);
+  renderer.shadowMap.enabled = true;
 
-container.appendChild(renderer.domElement);
+  container.appendChild(renderer.domElement);
 
-window.addEventListener('resize', handleWindowResize, false);
+  window.addEventListener('resize', handleWindowResize, false);
 }
 
 // HANDLE SCREEN EVENTS
@@ -98,7 +147,6 @@ function handleWindowResize() {
 var ambientLight, hemisphereLight, shadowLight;
 
 function createLights() {
-
   hemisphereLight = new THREE.HemisphereLight(0xaaaaaa,0x000000, .9)
   shadowLight = new THREE.DirectionalLight(0xffffff, .9);
   shadowLight.position.set(150, 350, 350);
@@ -137,17 +185,14 @@ function onMouseMove( event ) {
 	
 	// HACKY!!!
 	mouse.y = (- ( event.clientY / HEIGHT ) * 2 + 1) + 1;	
-	
-	//console.log(mouse.y);	
 
-  
   if (selectedObject) {
+
     raycaster.setFromCamera( mouse, camera );
     // If the mouse is moving while there is an object selected
     intersects = raycaster.intersectObject( plane );
 
     if (intersects.length > 0) {
-
       selectedObject.position.copy(intersects[ 0 ].point);
     }
   /*} else {
@@ -168,54 +213,32 @@ function onMouseMove( event ) {
 // offset is the difference between the intersection of the ray and plane minus the current plane position
 function onMouseDown( event ) {
 
-  //event.preventDefault();
-
-  //console.log("hi");
-
   // Intersects is the array of intersections with cubeMesh
   intersects = raycaster.intersectObject(cubeMesh);
 
   // If the mouse has clicked down on the cubeMesh
   if ( intersects.length > 0 ) {
 
-    //controls.enabled = false;
-
     // Save the selected object (cubeMesh)
     selectedObject = intersects[ 0 ].object;
-
-    /*
-    // If the ray intersects with the plane
-    // store the resulting intersection point (if not null) in intersection
-    // (ie. the intersection point is not null)
-    if ( raycaster.ray.intersectPlane( plane, intersection ) ) {
-      // Here is where offset is initialized
-      // It gets the value of the intersection point, subtracted by the current position of the plane
-      offset.copy(intersects[0].point).sub(plane.position);
-    } */
 
   }
 
 }
 
 function onMouseUp( event ) {
-
-  //event.preventDefault();
-
   selectedObject = null;
-
 }
+
 window.addEventListener( 'mousemove', onMouseMove, false );
 window.addEventListener( 'mousedown', onMouseDown, false );
 window.addEventListener( 'mouseup', onMouseUp, false );
 
-
-window.requestAnimationFrame(render);
-
 function render(){
     requestAnimationFrame(render);
 
-    if (keyFrames != undefined && keyFrames[currFrame] != undefined && keyFrames[currFrame] != null) {
-      console.log("keyed position is " + keyFrames[currFrame].x + " current is " + cubeMesh.position.x);
+    if (keyFrames != undefined && keyFrames[currFrame] != undefined) {
+      //console.log("keyed position is " + keyFrames[currFrame].x + " current is " + cubeMesh.position.x);
       cubeMesh.position.copy(keyFrames[currFrame]);
     }
 
@@ -233,26 +256,19 @@ function render(){
       
     renderer.render(scene, camera);
 
-  
 }
 
 function init(){
+
   createScene();
   createLights();
   createCube();
   setUpDrag();
   
   render();
+
 }
 
-
-var raycaster = new THREE.Raycaster();
-var mouse = new THREE.Vector2();
-var intersection = new THREE.Vector3(0, 0, 0);
-var plane;
-var selectedObject;
-var INTERSECTED, SELECTED;
-var intersects;
 
 function setUpDrag() {
   var planeMat = new THREE.MeshBasicMaterial({visible:false});
@@ -260,7 +276,6 @@ function setUpDrag() {
   plane = new THREE.Mesh( new THREE.PlaneGeometry( 2000,
   2000, 18, 18 ), planeMat);
 
-  //plane.visible = false;
   plane.lookAt(camera.position);
   scene.add( plane ); 
 }
