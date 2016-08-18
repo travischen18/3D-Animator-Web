@@ -1,0 +1,30 @@
+<html>
+	<head>
+		<title>My first Three.js app</title>
+        <link rel="stylesheet" type="text/css" href="style.css" />
+        <link rel="stylesheet" type="text/css" href="slider_style.css" />
+        
+		<script src="three.js"></script>
+        <script src="main.js"></script>
+	</head>
+	
+	<body>
+	    <div id="header"><h1>3D Animator</h1></div>
+    
+        <div id="slider">
+                <input id = "timeline" type="range" min="1" max="20" value="1" step="1"
+                    oninput="updateFrame(value)"/>
+        </div>
+    
+        <div id="frameNo">
+                <h2>Current frame: <output for="timeline" id="currFrame">1</output></h2>
+        </div>
+        
+        <div class="buttons">
+            <button class="keyFrameButton">Set keyframe</button>
+        </div>
+
+		
+		<div id="world"></div>
+	</body>
+</html>
