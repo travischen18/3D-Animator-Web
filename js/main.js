@@ -1,11 +1,20 @@
+var NUM_FRAMES = 20;
 var currFrame = 1;
+
+var DRAGGABLE = true;
 
 var cubeMesh;
 
 var keyFrames = [];
 
+var playback;
+
+var PAUSED = true;
+
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
+
+var playFrame = 1;
 
 // Intersection point
 var intersection = new THREE.Vector3(0, 0, 0);
@@ -39,6 +48,12 @@ var HEIGHT, WIDTH;
 function updateFrame(frame) {
     currFrame = frame;
     outputUpdate(currFrame);
+
+    // Draw the current position
+    if (keyFrames != undefined && keyFrames[currFrame] != undefined) {
+      //console.log("keyed position is " + keyFrames[currFrame].x + " current is " + cubeMesh.position.x);
+      cubeMesh.position.copy(keyFrames[currFrame]);
+    }
 }
 
 function outputUpdate(frame) {
@@ -57,7 +72,41 @@ $(document).ready(function(){
 
     });
 
+    $("#playButton").click(function(){
+
+        PAUSED = false;
+        playback = setInterval(updateAll, 41.5);
+
+        
+    });
+
+    $("#pauseButton").click(function(){
+
+        PAUSED = true;
+        
+    });
+
+
 });
+
+function updateAll() {
+  // If we hit the end, or PAUSED = true
+  if (playFrame >= NUM_FRAMES || PAUSED) {
+
+    playFrame = currFrame;
+    clearInterval(playback);
+
+  } else {
+    playFrame++;
+  }
+
+  updateTimeline(playFrame);
+  updateFrame(playFrame);
+}
+
+function updateTimeline(i) {
+  document.querySelector('#timeline').value = i;
+}
 
 function interpolateKeys() {
   var prevKey = null;
@@ -65,33 +114,45 @@ function interpolateKeys() {
   for (var i = 0; i < keyFrames.length; i++) {
     if (keyFrames[i] != undefined) {
 
+      // We have a set keyframe
+
       if (prevKey == null) {
         prevKey = i;
       } else {
-
-        // Get the difference vector between the two locations
-        var vecDiff = new THREE.Vector3();
-        vecDiff.copy(keyFrames[i]);
-        vecDiff.sub(keyFrames[prevKey]);
-
-        // Get the frame difference
-        var frameDiff = i - prevKey;
-
-        // The add vector is vector / numFrames
-        var addVec = vecDiff.divideScalar(frameDiff);
-
-        for (var j = prevKey + 1; j < i; j++) {
-          var newVec = new THREE.Vector3();
-          newVec.copy(addVec);
-          newVec.multiplyScalar(j-prevKey);
-          keyFrames[j] = newVec;
+        if (i > 0 && keyFrames[i - 1] == undefined) {
+          interpolateTwoKeys(prevKey, i);
         }
-
-        prevKey = i;
-
       }
+
+      prevKey = i;
+
     }
 
+  }
+}
+
+// Interpolates the keyframes between keyFrames[i1] and keyFrames[i2]
+function interpolateTwoKeys(i1, i2) {
+
+  var newVec;
+
+  // Get the difference vector between the two locations
+  var vecDiff = new THREE.Vector3();
+  vecDiff.copy(keyFrames[i2]);
+  vecDiff.sub(keyFrames[i1]);
+
+  // Get the frame difference
+  var frameDiff = i2 - i1;
+
+  // The add vector is vector / numFrames
+  vecDiff.divideScalar(frameDiff);
+
+  for (var j = i1 + 1; j < i2; j++) {
+    newVec = new THREE.Vector3();
+    newVec.copy(vecDiff);
+    newVec.multiplyScalar(j-i1);
+    keyFrames[j] = newVec;
+    keyFrames[j].add(keyFrames[i1]);
   }
 }
 
@@ -188,8 +249,10 @@ function onMouseMove( event ) {
 
   if (selectedObject) {
 
-    raycaster.setFromCamera( mouse, camera );
+
     // If the mouse is moving while there is an object selected
+    raycaster.setFromCamera( mouse, camera );
+    
     intersects = raycaster.intersectObject( plane );
 
     if (intersects.length > 0) {
@@ -236,11 +299,6 @@ window.addEventListener( 'mouseup', onMouseUp, false );
 
 function render(){
     requestAnimationFrame(render);
-
-    if (keyFrames != undefined && keyFrames[currFrame] != undefined) {
-      //console.log("keyed position is " + keyFrames[currFrame].x + " current is " + cubeMesh.position.x);
-      cubeMesh.position.copy(keyFrames[currFrame]);
-    }
 
     cubeMesh.material.color.set(Colors.red);
     
