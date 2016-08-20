@@ -5,7 +5,8 @@ var DRAGGABLE = true;
 
 var cubeMesh;
 
-var keyFrames = [];
+var frames = [];
+var allFrames = [];
 
 var playback;
 
@@ -50,9 +51,8 @@ function updateFrame(frame) {
     outputUpdate(currFrame);
 
     // Draw the current position
-    if (keyFrames != undefined && keyFrames[currFrame] != undefined) {
-      //console.log("keyed position is " + keyFrames[currFrame].x + " current is " + cubeMesh.position.x);
-      cubeMesh.position.copy(keyFrames[currFrame]);
+    if (frames != undefined && frames[currFrame] != undefined) {
+      cubeMesh.position.copy(frames[currFrame].positionVec);
     }
 }
 
@@ -65,8 +65,12 @@ function outputUpdate(frame) {
 $(document).ready(function(){
     $("#keyFrameButton").click(function(){
 
-        keyFrames[currFrame] = new THREE.Vector3(0, 0, 0);
-        keyFrames[currFrame].copy(cubeMesh.position);
+        frames[currFrame] = new Frame(new THREE.Vector3(0, 0, 0), true);
+
+        if (frames[currFrame].positionVec == undefined) {
+          console.log("hi");
+        }
+        frames[currFrame].positionVec.copy(cubeMesh.position);
 
         interpolateKeys();
 
@@ -89,6 +93,28 @@ $(document).ready(function(){
 
 });
 
+function interpolateKeys() {
+  var prevKey = null;
+  var nextKey = null;
+  for (var i = 0; i < frames.length; i++) {
+    if (frames[i] != undefined && frames[i].isKey) {
+
+      // We have a set keyframe
+
+      if (prevKey != null) {
+        // If we're not on the first frame and the previous frame
+        if (i > 0 && (frames[i - 1] == undefined || !frames[i - 1].isKey)) {
+          interpolateTwoKeys(prevKey, i);
+        }
+      }
+
+      prevKey = i;
+
+    }
+
+  }
+}
+
 function updateAll() {
   // If we hit the end, or PAUSED = true
   if (playFrame >= NUM_FRAMES || PAUSED) {
@@ -108,38 +134,20 @@ function updateTimeline(i) {
   document.querySelector('#timeline').value = i;
 }
 
-function interpolateKeys() {
-  var prevKey = null;
-  var nextKey = null;
-  for (var i = 0; i < keyFrames.length; i++) {
-    if (keyFrames[i] != undefined) {
+var Frame = function (positionVec, isKey) {
+  this.positionVec = positionVec;
+  this.isKey = isKey;
+};
 
-      // We have a set keyframe
-
-      if (prevKey == null) {
-        prevKey = i;
-      } else {
-        if (i > 0 && keyFrames[i - 1] == undefined) {
-          interpolateTwoKeys(prevKey, i);
-        }
-      }
-
-      prevKey = i;
-
-    }
-
-  }
-}
-
-// Interpolates the keyframes between keyFrames[i1] and keyFrames[i2]
+// Interpolates the frames between frames[i1] and frames[i2]
 function interpolateTwoKeys(i1, i2) {
 
   var newVec;
 
   // Get the difference vector between the two locations
   var vecDiff = new THREE.Vector3();
-  vecDiff.copy(keyFrames[i2]);
-  vecDiff.sub(keyFrames[i1]);
+  vecDiff.copy(frames[i2].positionVec);
+  vecDiff.sub(frames[i1].positionVec);
 
   // Get the frame difference
   var frameDiff = i2 - i1;
@@ -151,8 +159,10 @@ function interpolateTwoKeys(i1, i2) {
     newVec = new THREE.Vector3();
     newVec.copy(vecDiff);
     newVec.multiplyScalar(j-i1);
-    keyFrames[j] = newVec;
-    keyFrames[j].add(keyFrames[i1]);
+
+    // Add a new frame that is NOT a keyframe
+    frames[j] = new Frame(newVec, false);
+    frames[j].positionVec.add(frames[i1].positionVec);
   }
 }
 
@@ -177,9 +187,9 @@ function createScene() {
   nearPlane,
   farPlane
   );
-  camera.position.x = 0;
-  camera.position.z = 50;
-  camera.position.y = 25;
+  camera.position.x = 70;
+  camera.position.z = 80;
+  camera.position.y = 70;
 
   camera.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -229,7 +239,7 @@ function createLights() {
 
 
 function createCube() {
-    var cube = new THREE.BoxGeometry(10, 10, 10);
+    var cube = new THREE.BoxGeometry(15, 15, 15);
     var cubeMat = new THREE.MeshPhongMaterial({color:Colors.red, shading:THREE.FlatShading});
     cubeMesh = new THREE.Mesh(cube, cubeMat);
     scene.add(cubeMesh);
